@@ -1,10 +1,10 @@
 module.exports = {
   // Type check TypeScript files
-  '**/*.(ts|tsx)': () => 'npm ts-check',
+  '**/*.(ts|tsx)': () => 'npm run ts-check',
 
   // Lint & Prettify TS and JS files
-  '**/*.(ts|tsx|js)': () => ['npm lint:fix', 'npm prettier:fix'],
+  '**/*.(ts|tsx|js)': () => ['npm run lint:fix', 'npm run prettier:fix'],
 
   // Prettify only Markdown and JSON files
-  '**/*.(md|json)': () => 'npm prettier:fix'
+  '**/*.(md|json)': () => 'npm run prettier:fix'
 };
