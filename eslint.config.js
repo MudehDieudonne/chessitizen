@@ -1,4 +1,3 @@
-// eslint.config.js
 const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 const prettierConfig = require('eslint-config-prettier');
@@ -10,16 +9,9 @@ module.exports = defineConfig([
 
   // Add your custom plugins and rules
   {
-    ignores: [
-      "node_modules",
-      "dist",
-      "build",
-      ".expo",
-      "android",
-      "ios"
-    ],
+    ignores: ['node_modules', 'dist', 'build', '.expo', 'android', 'ios'],
     plugins: {
-      'unused-imports': unusedImportsPlugin,
+      'unused-imports': unusedImportsPlugin
     },
     rules: {
       'no-console': 'warn',
@@ -30,12 +22,12 @@ module.exports = defineConfig([
           vars: 'all',
           varsIgnorePattern: '^_',
           args: 'after-used',
-          argsIgnorePattern: '^_',
-        },
-      ],
-    },
+          argsIgnorePattern: '^_'
+        }
+      ]
+    }
   },
 
   // Apply Prettier's rules. This must be the LAST item.
-  prettierConfig,
+  prettierConfig
 ]);
