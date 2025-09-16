@@ -14,8 +14,8 @@ LogBox.ignoreLogs([
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <UserProvider>
+    <UserProvider>
+      <AuthProvider>
         <GameProvider>
           <SafeAreaProvider>
             <View style={styles.background}>
@@ -33,8 +33,8 @@ export default function RootLayout() {
             </View>
           </SafeAreaProvider>
         </GameProvider>
-      </UserProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </UserProvider>
   );
 }
 

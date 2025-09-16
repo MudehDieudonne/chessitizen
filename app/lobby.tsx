@@ -1,7 +1,7 @@
 'use client';
 import Sidebar from '@/components/sidebar';
 import Spacing from '@/constants/Spacing';
-import { useAuth } from '@/context/AuthProvider';
+import { useAuth } from '@/hooks/useAuthAPI';
 import { useGame } from '@/hooks/useGame';
 import { useUser } from '@/hooks/useUser';
 import { LinearGradient } from 'expo-linear-gradient';

@@ -1,11 +1,13 @@
 'use client';
+import { useUser } from '@/hooks/useUser';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 
 export interface User {
   id: string;
   email: string;
-  username?: string;
+  [key: string]: any;
 }
 
 export interface AuthContextType {
@@ -13,6 +15,7 @@ export interface AuthContextType {
   loading: boolean;
   sendOTP: (email: string) => Promise<boolean>;
   verifyOTP: (email: string, otp: string) => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -23,56 +26,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
+  const { fetchUserStats } = useUser();
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const loadUser = async () => {
       try {
-        const response = await axios.get<User>('/api/auth/me');
-        setUser(response.data);
-      } catch {
-        setUser(null);
+        const json = await AsyncStorage.getItem('@user');
+        if (json) {
+          const storedUser = JSON.parse(json);
+          setUser(storedUser);
+        }
+      } catch (err) {
+        console.error('Failed to load user from storage', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchUser();
+    loadUser();
   }, []);
 
   const sendOTP = async (email: string) => {
     try {
-      await axios.post('/api/auth/send-otp', { email });
+      await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/auth/otp/send`, {
+        email
+      });
       return true;
-    } catch {
+    } catch (err) {
+      console.error('sendOTP error', err);
       return false;
     }
   };
 
-  const verifyOTP = async (email: string, otp: string) => {
+  const verifyOTP = async (
+    email: string,
+    otp: string
+  ): Promise<User | null> => {
     try {
-      const response = await axios.post<{ user: User }>(
-        '/api/auth/verify-otp',
-        {
-          email,
-          otp
-        }
+      const response = await axios.post<{ verified: boolean }>(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/otp/verify`,
+        { email, otp }
       );
-      setUser(response.data.user);
-      return true;
-    } catch {
-      return false;
+
+      if (!response.data.verified) return null;
+
+      // Store email and id only
+      const userToStore = { id: response.data.verified.id, email };
+      setUser(userToStore);
+      await AsyncStorage.setItem('@user', JSON.stringify(userToStore));
+
+      return userToStore;
+    } catch (err) {
+      console.error('verifyOTP error', err);
+      return null;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setUser(null);
+      await AsyncStorage.removeItem('@user');
+    } catch (err) {
+      console.error('logout error', err);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, sendOTP, verifyOTP }}>
+    <AuthContext.Provider value={{ user, loading, sendOTP, verifyOTP, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = (): AuthContextType => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
 };
