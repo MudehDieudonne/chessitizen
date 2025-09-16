@@ -1,7 +1,8 @@
 'use client';
+
 import { useAuth } from '@/hooks/useAuthAPI';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,20 +18,27 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function LoginScreen() {
   const router = useRouter();
   const { sendOTP } = useAuth();
+
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleContinue = async () => {
-    if (!email) return Alert.alert('Error', 'Please enter your email');
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email');
+      return;
+    }
+
     setLoading(true);
     try {
-      const success = await sendOTP(email);
+      const success = await sendOTP(email.trim().toLowerCase());
       if (success) {
+        // Navigate to Verify OTP screen and pass the email
         router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
       } else {
         Alert.alert('Error', 'Failed to send OTP. Try again.');
       }
     } catch (err) {
+      console.error('sendOTP error', err);
       Alert.alert('Error', 'Something went wrong. Try again.');
     } finally {
       setLoading(false);
@@ -41,12 +49,22 @@ export default function LoginScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0F0F23' }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 32 }}
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 32
+        }}
       >
+        {/* Logo */}
         <View
           style={{
-            marginBottom: 48,
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            justifyContent: 'center',
             alignItems: 'center',
+            marginBottom: 48,
             shadowColor: '#8B5CF6',
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: 0.8,
@@ -56,14 +74,14 @@ export default function LoginScreen() {
         >
           <Text
             style={{
-              fontSize: 40,
+              fontSize: 50,
               color: '#FFFFFF',
               textShadowColor: '#8B5CF6',
               textShadowOffset: { width: 0, height: 0 },
               textShadowRadius: 15
             }}
           >
-            🔒
+            ♟️
           </Text>
         </View>
 
@@ -72,7 +90,7 @@ export default function LoginScreen() {
             fontSize: 28,
             fontWeight: 'bold',
             color: '#FFFFFF',
-            marginBottom: 8,
+            marginBottom: 16,
             textAlign: 'center'
           }}
         >
@@ -90,13 +108,8 @@ export default function LoginScreen() {
           Enter your email to continue
         </Text>
 
+        {/* Email Input */}
         <TextInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Email"
-          placeholderTextColor="#6B7280"
-          keyboardType="email-address"
-          autoCapitalize="none"
           style={{
             width: '100%',
             height: 55,
@@ -109,9 +122,16 @@ export default function LoginScreen() {
             color: '#FFFFFF',
             marginBottom: 32
           }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholder="Email"
+          placeholderTextColor="#6B7280"
+          value={email}
+          onChangeText={setEmail}
           editable={!loading}
         />
 
+        {/* Continue Button */}
         <TouchableOpacity
           onPress={handleContinue}
           disabled={loading || !email}
