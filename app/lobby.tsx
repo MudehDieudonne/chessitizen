@@ -5,8 +5,9 @@ import { useAuth } from '@/hooks/useAuthAPI';
 import { useGame } from '@/hooks/useGame';
 import { useUser } from '@/hooks/useUser';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -24,9 +25,51 @@ const Lobby = () => {
   const { createGame, loading: gameLoading } = useGame();
   const [isMounted, setIsMounted] = useState(false);
 
+  // Sounds
+  const bgMusic = useRef<Audio.Sound | null>(null);
+  const clickSound = useRef<Audio.Sound | null>(null);
+
   useEffect(() => {
     setIsMounted(true);
+
+    const loadSounds = async () => {
+      try {
+        // Background music
+        const { sound: music } = await Audio.Sound.createAsync(
+          require('@/assets/sounds/lobby-music.mp3'),
+          { isLooping: true, volume: 0.5 }
+        );
+        bgMusic.current = music;
+        await music.playAsync();
+
+        // Click sound
+        const { sound: click } = await Audio.Sound.createAsync(
+          require('@/assets/sounds/click.mp3')
+        );
+        clickSound.current = click;
+      } catch (err) {
+        console.error('Error loading sounds:', err);
+      }
+    };
+
+    loadSounds();
+
+    return () => {
+      bgMusic.current?.stopAsync();
+      bgMusic.current?.unloadAsync();
+      clickSound.current?.unloadAsync();
+    };
   }, []);
+
+  const playClick = async () => {
+    try {
+      if (clickSound.current) {
+        await clickSound.current.replayAsync();
+      }
+    } catch (err) {
+      console.error('Click sound error:', err);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -34,45 +77,17 @@ const Lobby = () => {
     }
   }, [user, authLoading]);
 
-  // const handlePlayVsAI = async () => {
-  //   if (!user?.id) {
-  //     Alert.alert('Error', 'You must be logged in to play vs AI');
-  //     return;
-  //   }
-  //   try {
-  //     const gameId = await createGame(true);
-  //     router.push(`/game/${gameId}` as unknown as string);
-  //   } catch (error) {
-  //     console.error(error);
-  //     Alert.alert('Error', 'Failed to create AI game. Please try again.');
-  //   }
-  // };
-
-  {
-    /*  const handleCreateInvite = async () => {
-    const inviteToken = 'invite_' + Date.now();
-    const inviteUrl = `https://yourapp.com/invite/${inviteToken}`;
-    try {
-      await Clipboard.setStringAsync(inviteUrl);
-      Alert.alert('Invite Created', 'Invite link copied to clipboard!');
-      router.push(`/invite/${inviteToken}` as unknown as string);
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to copy invite link.');
-    }
-  }; 
-
-  const handlePlayOffline = () => {
-    router.push('/offline' as unknown as string);
-  };
-*/
-  }
   const displayName =
     user?.username || user?.email?.split('@')[0] || 'ChessPlayer';
 
   return (
     <View style={styles.background}>
+      {/* Header */}
       <View style={styles.header}>
+        <LinearGradient
+          colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
+          style={styles.glow}
+        />
         <Text style={styles.appTitle}>Chessizen</Text>
         <Text style={styles.appSubtitle}>Master the Game</Text>
         <View style={styles.userCard}>
@@ -88,11 +103,10 @@ const Lobby = () => {
         </View>
       </View>
 
+      {/* Buttons */}
       <ScrollView style={styles.container}>
         <View style={styles.content}>
-          <TouchableOpacity
-          // onPress={() => router.push('/online' as unknown as string)}
-          >
+          <TouchableOpacity onPress={playClick}>
             <LinearGradient
               colors={['#8B5CF6', '#7C3AED', '#6D28D9']}
               start={{ x: 0, y: 0 }}
@@ -105,7 +119,16 @@ const Lobby = () => {
 
           <TouchableOpacity
             style={styles.aiButton}
-            // onPress={handlePlayVsAI}
+            onPress={async () => {
+              try {
+                const game = await createGame({ type: 'AI' }); // call your backend
+                if (game?.id) {
+                  router.push(`/game/${game.id}`); // navigate to game screen
+                }
+              } catch (err) {
+                console.error('Failed to start AI game:', err);
+              }
+            }}
             disabled={gameLoading}
           >
             {gameLoading ? (
@@ -115,17 +138,11 @@ const Lobby = () => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.friendButton}
-            // onPress={handleCreateInvite}
-          >
+          <TouchableOpacity style={styles.friendButton} onPress={playClick}>
             <Text style={styles.friendButtonText}>👥 Play vs Friend</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.offlineButton}
-            // onPress={handlePlayOffline}
-          >
+          <TouchableOpacity style={styles.offlineButton} onPress={playClick}>
             <Text style={styles.offlineButtonText}>🎮 Play Offline</Text>
           </TouchableOpacity>
         </View>
@@ -143,7 +160,16 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 20
+    paddingBottom: 20,
+    position: 'relative'
+  },
+  glow: {
+    position: 'absolute',
+    top: 20,
+    width: 300,
+    height: 150,
+    borderRadius: 150,
+    opacity: 0.3
   },
   appTitle: { fontSize: 28, fontWeight: 'bold', color: '#A855F7' },
   appSubtitle: { fontSize: 14, color: '#9CA3AF', marginTop: 4 },
